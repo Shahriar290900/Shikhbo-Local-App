@@ -1,0 +1,42 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.env.*
+!.env.example
+
+# Python venv
+venv/
+.venv/
+env/
+
+# PyInstaller
+dist/
+build/
+*.spec.bak
+
+# App data (user's local data — never commit)
+knowledge_base/
+uploads/
+
+# macOS
+.DS_Store
+*.dmg
+
+# Windows
+*.exe
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# Shikhbo reference (read-only, not shipped)
+Shikhbo-reference/
+
+# Files dir (planning docs)
+files/

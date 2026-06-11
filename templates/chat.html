@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="bn">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>শিখবো — Shikhbo</title>
+  <!-- No CDN fonts — Bengali font is bundled locally via @font-face in chat.css -->
+  <link rel="stylesheet" href="/static/css/chat.css" />
+</head>
+
+<body>
+
+  <!-- ── TOP BAR ─────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <div class="logo-mark">
+          <svg class="logo-book" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            <line x1="8" y1="7" x2="16" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <line x1="8" y1="11" x2="13" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="logo-wordmark">
+          <span class="logo-bn">শিখবো — Shikhbo</span>
+        </div>
+      </div>
+
+      <!-- Language Toggle -->
+      <div class="segmented-control">
+        <button class="seg-btn" id="langBnBtn" onclick="setLanguage('bn')">বাংলা</button>
+        <button class="seg-btn" id="langEnBtn" onclick="setLanguage('en')">English</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── CHAT AREA ──────────────────────────────────────────────────────── -->
+  <main class="chat-main">
+
+    <!-- Left Panel -->
+    <div class="left-panel">
+
+      <div class="panel-section">
+        <h4 data-en="Subject" data-bn="বিষয়">বিষয়</h4>
+        <div class="subject-list">
+          <button class="subject-item active" data-subject="ICT" onclick="selectSubject('ICT')" data-en="ICT"
+            data-bn="আইসিটি">আইসিটি</button>
+          <button class="subject-item" data-subject="Bangla" onclick="selectSubject('Bangla')" data-en="Bangla"
+            data-bn="বাংলা">বাংলা</button>
+          <button class="subject-item" data-subject="Physics" onclick="selectSubject('Physics')" data-en="Physics"
+            data-bn="পদার্থ">পদার্থ</button>
+          <button class="subject-item" data-subject="English" onclick="selectSubject('English')" data-en="English"
+            data-bn="ইংরেজি">ইংরেজি</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h4 data-en="Mode" data-bn="মোড">মোড</h4>
+        <div class="mode-list">
+          <button class="mode-item active" data-mode="normal" onclick="setMode('normal')" data-en="Normal"
+            data-bn="স্বাভাবিক">স্বাভাবিক</button>
+          <button class="mode-item" data-mode="simple" onclick="setMode('simple')" data-en="Simple"
+            data-bn="সহজভাবে">সহজভাবে</button>
+          <button class="mode-item" data-mode="quiz" onclick="setMode('quiz')" data-en="Quiz"
+            data-bn="কুইজ">কুইজ</button>
+          <button class="mode-item" data-mode="step-by-step" onclick="setMode('step-by-step')" data-en="Step-by-Step"
+            data-bn="ধাপে ধাপে">ধাপে ধাপে</button>
+        </div>
+      </div>
+
+      <!-- Settings card (class + curriculum, no auth) -->
+      <div class="settings-card" id="settingsCard">
+        <h4 data-en="Settings" data-bn="সেটিংস">সেটিংস</h4>
+        <div>
+          <label data-en="Class" data-bn="ক্লাস">ক্লাস</label>
+          <select id="classSelect" onchange="updateSettings()">
+            <option value="Class 8">Class 8</option>
+            <option value="Class 9">Class 9</option>
+            <option value="SSC" selected>SSC (Class 10)</option>
+            <option value="Class 11">Class 11</option>
+            <option value="HSC">HSC (Class 12)</option>
+          </select>
+        </div>
+        <div>
+          <label data-en="Curriculum" data-bn="কারিকুলাম">কারিকুলাম</label>
+          <select id="curriculumSelect" onchange="updateSettings()">
+            <option value="NCTB" selected>NCTB</option>
+            <option value="Edexcel">Edexcel</option>
+            <option value="Cambridge">Cambridge</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Chat Window -->
+    <div class="chat-window" id="chatWindow">
+      <!-- System notice bar (hidden by default) -->
+      <div class="notice-bar" id="noticeBar"></div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="welcome-msg" id="welcomeMsg">
+          <div class="welcome-icon-wrap">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+              style="color:var(--accent)">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor"
+                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              <line x1="8" y1="7" x2="16" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              <line x1="8" y1="11" x2="13" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </div>
+          <h2>
+            <span data-en="Hello!" data-bn="হ্যালো!">হ্যালো!</span>
+          </h2>
+          <p data-en="Pick a subject and mode, then ask me anything."
+            data-bn="তোমার বিষয় ও পড়ার ধরন নির্বাচন করো, তারপর যা জানতে চাও জিজ্ঞাসা করো।">
+            তোমার বিষয় ও পড়ার ধরন নির্বাচন করো, তারপর যা জানতে চাও জিজ্ঞাসা করো।
+          </p>
+        </div>
+      </div>
+
+      <!-- Input bar -->
+      <div class="input-bar">
+        <div class="input-inner">
+          <div class="context-chips">
+            <span class="chip" id="chipSubject">ICT</span>
+            <span class="chip" id="chipMode" data-en="Normal" data-bn="স্বাভাবিক">স্বাভাবিক</span>
+            <span class="chip" id="chipClass">SSC</span>
+            <span class="chip" id="chipCurriculum">NCTB</span>
+          </div>
+
+          <!-- Attachment preview -->
+          <div class="attachment-preview" id="attachmentPreview" style="display: none;">
+            <div class="attachment-chip">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span id="attachmentName">file.pdf</span>
+              <button class="attachment-remove" onclick="removeAttachment()" title="Remove">&times;</button>
+            </div>
+          </div>
+
+          <div class="input-row">
+            <textarea id="queryInput" data-en="Ask a question…" data-bn="প্রশ্ন লিখো…" placeholder="প্রশ্ন লিখো…"
+              rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+
+            <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt" style="display: none;"
+              onchange="handleFileSelect(event)" />
+
+            <button class="icon-btn clip-btn" id="clipBtn" onclick="document.getElementById('fileInput').click()"
+              title="Attach file">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
+                </path>
+              </svg>
+            </button>
+
+            <!-- Mic button — hidden until voice is confirmed available -->
+            <button class="icon-btn mic-btn" id="micBtn" onclick="toggleRecording()" title="Voice input"
+              style="display:none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </button>
+
+            <button class="send-btn" id="sendBtn" onclick="sendQuery()">
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+                <path d="M3 10L17 3l-7 7 7 7-14-7z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Inject history from server (list of {role, content} dicts) -->
+  <script>
+    const SERVER_HISTORY = {{ history | tojson | safe }};
+  </script>
+  <script src="/static/js/lang.js"></script>
+  <script src="/static/js/chat.js"></script>
+</body>
+
+</html>

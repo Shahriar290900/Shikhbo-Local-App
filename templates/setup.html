@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shikhbo — First Run Setup</title>
+  <style>
+    @font-face {
+      font-family: 'NotoSansBengali';
+      src: url('/static/fonts/NotoSansBengali.ttf') format('truetype');
+      font-weight: 100 900;
+      font-display: swap;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface-2: #1c2433;
+      --border: rgba(255,255,255,0.08); --accent: #2596be;
+      --accent-dim: rgba(37,150,190,0.1); --text: #e2e8f0;
+      --text-dim: #8b9bb4; --green: #3ecf8e; --red: #e05a6a;
+      --font: 'NotoSansBengali', system-ui, sans-serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; }
+    .card { background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 36px 40px; width: 100%; max-width: 520px; }
+    .logo { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+    .subtitle { font-size: 14px; color: var(--text-dim); margin-bottom: 28px; }
+    .step { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px;
+      padding: 12px 14px; border-radius: 8px; background: var(--surface-2);
+      border: 1px solid var(--border); transition: border-color 0.2s; }
+    .step.running { border-color: rgba(37,150,190,0.35); }
+    .step.done { border-color: rgba(62,207,142,0.35); }
+    .step.error { border-color: rgba(224,90,106,0.35); }
+    .step-icon { font-size: 18px; width: 26px; text-align: center; flex-shrink: 0; margin-top: 2px; }
+    .step-body { flex: 1; }
+    .step-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .step-detail { font-size: 12px; color: var(--text-dim); margin-top: 3px;
+      max-height: 80px; overflow-y: auto; word-break: break-word; }
+    .btn { display: inline-block; margin-top: 20px; padding: 11px 26px;
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      font-family: var(--font); font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.88; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary { background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-dim); margin-left: 10px; }
+    .progress-bar { height: 3px; background: var(--surface-2); border-radius: 2px;
+      margin-bottom: 24px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent);
+      transition: width 0.4s ease; width: 0%; }
+    .done-msg { text-align: center; padding: 20px 0 8px; }
+    .done-msg .check { font-size: 40px; margin-bottom: 10px; }
+    .done-msg h2 { font-size: 19px; color: var(--green); margin-bottom: 6px; }
+    .done-msg p { font-size: 13px; color: var(--text-dim); }
+    a.ext-link { color: var(--accent); text-decoration: none; }
+    a.ext-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">শিখবো — Shikhbo</div>
+    <div class="subtitle">First-run setup: configuring your local AI tutor</div>
+
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div id="stepsContainer"></div>
+
+    <div id="doneMsg" class="done-msg" style="display:none;">
+      <div class="check">✅</div>
+      <h2>Setup Complete!</h2>
+      <p>Your local AI tutor is ready. Everything runs on your device — no internet needed for chatting.</p>
+    </div>
+
+    <div id="actionBar">
+      <button class="btn" id="startBtn" onclick="startSetup()">Start Setup</button>
+      <button class="btn btn-secondary" id="skipBtn" onclick="skipSetup()" title="Skip if already set up">Already done</button>
+    </div>
+
+    <div id="ollamaHint" style="display:none; margin-top:14px; font-size:12.5px; color:var(--text-dim);">
+      Ollama not found on this machine.
+      <a class="ext-link" href="https://ollama.com/download" target="_blank">Download Ollama</a>,
+      install it, then click <strong>Retry</strong>.
+    </div>
+  </div>
+
+  <script>
+    const STEPS_CONFIG = [
+      { key: 'ollama_check',  title: 'Check Ollama',              icon: '🔍' },
+      { key: 'model_pull',    title: 'Download LLM (qwen3.5:0.8b)', icon: '📦' },
+      { key: 'model_pull_2',  title: 'Download Embeddings (bge-m3)', icon: '📦' },
+      { key: 'build_index',   title: 'Build knowledge index',      icon: '📚' },
+      { key: 'done',          title: 'All done',                   icon: '✅' },
+    ];
+
+    let stepEls = {};
+    let totalSteps = STEPS_CONFIG.length;
+    let completedSteps = 0;
+
+    function renderSteps() {
+      const container = document.getElementById('stepsContainer');
+      container.innerHTML = '';
+      STEPS_CONFIG.forEach(cfg => {
+        const el = document.createElement('div');
+        el.className = 'step';
+        el.id = 'step-' + cfg.key;
+        el.innerHTML = `<div class="step-icon">${cfg.icon}</div>
+          <div class="step-body">
+            <div class="step-title">${cfg.title}</div>
+            <div class="step-detail" id="detail-${cfg.key}">Waiting…</div>
+          </div>`;
+        container.appendChild(el);
+        stepEls[cfg.key] = el;
+      });
+    }
+
+    function setStep(key, state, detail) {
+      const el = stepEls[key] || document.getElementById('step-' + key);
+      if (!el) return;
+      el.className = 'step ' + state;
+      const det = document.getElementById('detail-' + key);
+      if (det && detail !== undefined) det.textContent = detail;
+      if (state === 'done') {
+        completedSteps++;
+        document.getElementById('progressFill').style.width =
+          Math.round(completedSteps / totalSteps * 100) + '%';
+      }
+    }
+
+    function startSetup() {
+      renderSteps();
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('skipBtn').disabled = true;
+      document.getElementById('ollamaHint').style.display = 'none';
+      runSetupStream();
+    }
+
+    function skipSetup() {
+      fetch('/api/setup/run').then(() => {}).catch(() => {});
+      window.location.href = '/chat';
+    }
+
+    async function runSetupStream() {
+      let modelCount = 0; // track which model_pull event we're on
+
+      try {
+        const res = await fetch('/api/setup/run');
+        const reader = res.body.getReader();
+        const dec = new TextDecoder('utf-8');
+        let buf = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            let msg;
+            try { msg = JSON.parse(line); } catch (e) { continue; }
+
+            if (msg.step === 'ollama_check') {
+              if (msg.status === 'running') setStep('ollama_check', 'running', 'Checking Ollama…');
+              if (msg.status === 'done')    setStep('ollama_check', 'done', 'Ollama is running');
+              if (msg.status === 'error') {
+                setStep('ollama_check', 'error', msg.message || 'Ollama not found');
+                document.getElementById('ollamaHint').style.display = 'block';
+                document.getElementById('startBtn').textContent = 'Retry';
+                document.getElementById('startBtn').disabled = false;
+                return;
+              }
+            }
+
+            if (msg.step === 'model_pull') {
+              const stepKey = modelCount === 0 ? 'model_pull' : 'model_pull_2';
+              if (msg.status === 'running') setStep(stepKey, 'running', `Pulling ${msg.model}…`);
+              if (msg.status === 'progress') {
+                const det = document.getElementById('detail-' + stepKey);
+                if (det) det.textContent = msg.line || 'Downloading…';
+              }
+              if (msg.status === 'done') { setStep(stepKey, 'done', `${msg.model} ready`); modelCount++; }
+              if (msg.status === 'error') {
+                setStep(stepKey, 'error', `Failed to pull ${msg.model}: ${msg.message || ''}`);
+                document.getElementById('startBtn').textContent = 'Retry';
+                document.getElementById('startBtn').disabled = false;
+                return;
+              }
+            }
+
+            if (msg.step === 'build_index') {
+              if (msg.status === 'running') setStep('build_index', 'running', 'Embedding curriculum chunks…');
+              if (msg.status === 'done')    setStep('build_index', 'done', 'Index built successfully');
+              if (msg.status === 'error') {
+                setStep('build_index', 'error', msg.message || 'Index build failed');
+                document.getElementById('startBtn').textContent = 'Retry';
+                document.getElementById('startBtn').disabled = false;
+                return;
+              }
+            }
+
+            if (msg.step === 'done' && msg.status === 'done') {
+              setStep('done', 'done', 'Everything is ready');
+              document.getElementById('progressFill').style.width = '100%';
+              document.getElementById('doneMsg').style.display = 'block';
+              document.getElementById('actionBar').innerHTML =
+                '<button class="btn" onclick="window.location.href=\'/chat\'">Open Shikhbo →</button>';
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Setup stream error:', e);
+        document.getElementById('startBtn').textContent = 'Retry';
+        document.getElementById('startBtn').disabled = false;
+      }
+    }
+
+    // Auto-start if this looks like a fresh install
+    renderSteps();
+  </script>
+</body>
+</html>
