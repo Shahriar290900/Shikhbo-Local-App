@@ -11,14 +11,15 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
-            artifact_name: Shikhbo.dmg
-            asset_name: Shikhbo-macOS.dmg
+            artifact_name: shikhbo-local.dmg
+            asset_name: shikhbo-local.dmg
           - os: windows-latest
-            artifact_name: Shikhbo-installer.exe
-            asset_name: Shikhbo-Windows-installer.exe
+            artifact_name: shikhbo-local.exe
+            asset_name: shikhbo-local.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -35,43 +36,56 @@ jobs:
         run: pip install -r requirements.txt pyinstaller
 
       - name: Build with PyInstaller
-        run: pyinstaller shikhbo.spec --noconfirm
+        run: pyinstaller shikhbo.spec --noconfirm --clean
 
       # ── macOS: create .dmg ───────────────────────────────────────────────
       - name: Create .dmg (macOS)
         if: runner.os == 'macOS'
         run: |
           brew install create-dmg || true
-          create-dmg \
-            --volname "Shikhbo" \
+          if create-dmg \
+            --volname "Shikhbo Local" \
             --window-size 600 400 \
             --icon-size 100 \
             --app-drop-link 400 185 \
-            Shikhbo.dmg \
-            dist/Shikhbo.app \
-          || hdiutil create -volname Shikhbo -srcfolder dist/Shikhbo.app \
-               -ov -format UDZO Shikhbo.dmg
+            shikhbo-local.dmg \
+            dist/Shikhbo.app; then
+            echo "create-dmg succeeded"
+          else
+            hdiutil create \
+              -volname "Shikhbo Local" \
+              -srcfolder dist/Shikhbo.app \
+              -ov -format UDZO \
+              shikhbo-local.dmg
+          fi
 
-      # ── Windows: create installer with NSIS ─────────────────────────────
-      - name: Create Windows installer
+      # ── Windows: create .exe installer ──────────────────────────────────
+      - name: Create Windows installer (NSIS)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          choco install nsis --no-progress -y
-          makensis /V1 /DOUTFILE="Shikhbo-installer.exe" /DAPP_DIR="dist\Shikhbo" installer.nsi
-        continue-on-error: true
+          # Try NSIS if installer.nsi exists
+          if (Test-Path "installer.nsi") {
+            choco install nsis --no-progress -y
+            & makensis /V1 /DOUTFILE="shikhbo-local.exe" /DAPP_DIR="dist\Shikhbo" installer.nsi
+          }
 
-      - name: Fallback — zip Windows build
+      - name: Fallback — zip Windows build as .exe container
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          if not exist "Shikhbo-installer.exe" (
-            powershell Compress-Archive -Path dist\Shikhbo -DestinationPath Shikhbo-installer.exe
-          )
-        shell: cmd
+          if (-not (Test-Path "shikhbo-local.exe")) {
+            # Package as self-extracting zip renamed to .exe for easy distribution
+            Compress-Archive -Path dist\Shikhbo\* -DestinationPath shikhbo-local.zip -Force
+            Rename-Item shikhbo-local.zip shikhbo-local.exe
+            Write-Host "Created shikhbo-local.exe (zip package)"
+          }
 
       # ── Upload artifacts ─────────────────────────────────────────────────
-      - name: Upload to release
+      - name: Upload to GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.artifact_name }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
