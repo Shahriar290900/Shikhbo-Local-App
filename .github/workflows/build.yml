@@ -16,10 +16,8 @@ jobs:
         include:
           - os: macos-latest
             artifact_name: shikhbo-local.dmg
-            asset_name: shikhbo-local.dmg
           - os: windows-latest
             artifact_name: shikhbo-local.exe
-            asset_name: shikhbo-local.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -27,15 +25,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: '3.11'
+          auto-activate-base: true
+          activate-environment: shikhbo
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt pyinstaller
+      - name: Install faiss via conda (pre-built, no SWIG needed)
+        shell: bash -el {0}
+        run: conda install -y -c conda-forge faiss-cpu
+
+      - name: Install Python dependencies
+        shell: bash -el {0}
+        run: |
+          pip install flask flask-cors rank-bm25 \
+            "langchain-core>=0.3" "langchain-community>=0.3" \
+            langdetect platformdirs pywebview faster-whisper \
+            requests python-dotenv werkzeug numpy pyinstaller
 
       - name: Build with PyInstaller
+        shell: bash -el {0}
         run: pyinstaller shikhbo.spec --noconfirm --clean
 
       # ── macOS: create .dmg ───────────────────────────────────────────────
@@ -59,29 +69,27 @@ jobs:
               shikhbo-local.dmg
           fi
 
-      # ── Windows: create .exe installer ──────────────────────────────────
+      # ── Windows: package dist folder as installer ────────────────────────
       - name: Create Windows installer (NSIS)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # Try NSIS if installer.nsi exists
           if (Test-Path "installer.nsi") {
             choco install nsis --no-progress -y
             & makensis /V1 /DOUTFILE="shikhbo-local.exe" /DAPP_DIR="dist\Shikhbo" installer.nsi
           }
 
-      - name: Fallback — zip Windows build as .exe container
+      - name: Fallback — zip Windows build
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           if (-not (Test-Path "shikhbo-local.exe")) {
-            # Package as self-extracting zip renamed to .exe for easy distribution
             Compress-Archive -Path dist\Shikhbo\* -DestinationPath shikhbo-local.zip -Force
             Rename-Item shikhbo-local.zip shikhbo-local.exe
             Write-Host "Created shikhbo-local.exe (zip package)"
           }
 
-      # ── Upload artifacts ─────────────────────────────────────────────────
+      # ── Upload to GitHub release ─────────────────────────────────────────
       - name: Upload to GitHub release
         uses: softprops/action-gh-release@v2
         with:

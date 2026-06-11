@@ -386,5 +386,35 @@ def _startup():
 if __name__ == "__main__":
     threading.Thread(target=_startup, daemon=True).start()
     port = _free_port(5050)
-    logger.info(f"Starting Shikhbo Local on http://127.0.0.1:{port}")
-    app.run(debug=False, port=port, host="127.0.0.1", threaded=True, use_reloader=False)
+    url = f"http://127.0.0.1:{port}"
+    logger.info(f"Starting Shikhbo Local on {url}")
+
+    IS_BUNDLE = getattr(sys, "frozen", False)
+
+    if IS_BUNDLE:
+        # In .app/.exe bundle: run Flask in background, open native window
+        flask_thread = threading.Thread(
+            target=lambda: app.run(
+                debug=False, port=port, host="127.0.0.1",
+                threaded=True, use_reloader=False
+            ),
+            daemon=True,
+        )
+        flask_thread.start()
+        time.sleep(1.5)  # Let Flask bind before opening window
+
+        try:
+            import webview
+            win = webview.create_window(
+                "শিখবো — Shikhbo", url,
+                width=1280, height=820, min_size=(900, 600),
+            )
+            webview.start()
+        except Exception:
+            # pywebview unavailable — fall back to system browser
+            import webbrowser
+            webbrowser.open(url)
+            flask_thread.join()  # Keep process alive until browser closes
+    else:
+        # Dev mode — just run Flask directly (browser already open or CLI)
+        app.run(debug=False, port=port, host="127.0.0.1", threaded=True, use_reloader=False)
