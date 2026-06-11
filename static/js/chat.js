@@ -1,3 +1,13 @@
+// ── SVG Icon constants (no emojis anywhere) ───────────────────────────────
+const ICON = {
+    bot: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1.2" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.2" fill="currentColor" stroke="none"/><path d="M9 19v1M15 19v1"/></svg>`,
+    user: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+    volume: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`,
+    volumeMute: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`,
+    pause: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>`,
+    loader: `<svg class="spin-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`,
+};
+
 // ── State ─────────────────────────────────────────────────────────────────
 let currentSubject = 'ICT';
 let currentMode = 'normal';
@@ -291,7 +301,7 @@ function appendMessage(text, sender, isError = false, sources = [], msgId = null
 
     const avatar = document.createElement('div');
     avatar.classList.add('msg-avatar');
-    avatar.textContent = sender === 'user' ? 'U' : '⬡';
+    avatar.innerHTML = sender === 'user' ? ICON.user : ICON.bot;
 
     const bubble = document.createElement('div');
     bubble.classList.add('msg-bubble');
@@ -307,7 +317,7 @@ function appendMessage(text, sender, isError = false, sources = [], msgId = null
     if (sender === 'bot' && !isError) {
         const speechBtn = document.createElement('button');
         speechBtn.classList.add('speech-btn');
-        speechBtn.innerHTML = '🔊';
+        speechBtn.innerHTML = ICON.volume;
         speechBtn.title = 'Play audio';
         speechBtn.onclick = () => playBotAudio(content, speechBtn);
         bubble.appendChild(speechBtn);
@@ -365,7 +375,7 @@ function appendLoading() {
 
     const avatar = document.createElement('div');
     avatar.classList.add('msg-avatar');
-    avatar.textContent = '⬡';
+    avatar.innerHTML = ICON.bot;
 
     const bubble = document.createElement('div');
     bubble.classList.add('msg-bubble');
@@ -461,14 +471,14 @@ async function playBotAudio(textDiv, btnEl) {
     if (_currentAudio) {
         _currentAudio.pause();
         _currentAudio = null;
-        document.querySelectorAll('.speech-btn').forEach(b => b.innerHTML = '🔊');
+        document.querySelectorAll('.speech-btn').forEach(b => b.innerHTML = ICON.volume);
         if (btnEl.dataset.playing === 'true') {
             btnEl.dataset.playing = 'false';
             return;
         }
     }
 
-    btnEl.innerHTML = '⏳';
+    btnEl.innerHTML = ICON.loader;
     try {
         const res = await fetch('/api/speak', {
             method: 'POST',
@@ -476,12 +486,11 @@ async function playBotAudio(textDiv, btnEl) {
             body: JSON.stringify({ text }),
         });
 
-        if (!res.ok) { btnEl.innerHTML = '🔊'; return; }
+        if (!res.ok) { btnEl.innerHTML = ICON.volume; return; }
 
         const ct = res.headers.get('Content-Type') || '';
         if (!ct.includes('audio')) {
-            // TTS unavailable
-            btnEl.innerHTML = '🔇';
+            btnEl.innerHTML = ICON.volumeMute;
             btnEl.title = 'TTS not available';
             return;
         }
@@ -490,21 +499,21 @@ async function playBotAudio(textDiv, btnEl) {
         const url = URL.createObjectURL(blob);
         _currentAudio = new Audio(url);
         _currentAudio.onended = () => {
-            btnEl.innerHTML = '🔊';
+            btnEl.innerHTML = ICON.volume;
             btnEl.dataset.playing = 'false';
             _currentAudio = null;
         };
         _currentAudio.onerror = () => {
-            btnEl.innerHTML = '🔊';
+            btnEl.innerHTML = ICON.volume;
             btnEl.dataset.playing = 'false';
             _currentAudio = null;
         };
-        btnEl.innerHTML = '⏸️';
+        btnEl.innerHTML = ICON.pause;
         btnEl.dataset.playing = 'true';
         _currentAudio.play();
     } catch (e) {
         console.error('TTS error:', e);
-        btnEl.innerHTML = '🔊';
+        btnEl.innerHTML = ICON.volume;
     }
 }
 

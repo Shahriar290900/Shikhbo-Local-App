@@ -652,6 +652,20 @@ textarea:focus {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Spinner for async icon states ────────────────────────────────────────── */
+@keyframes icon-spin {
+  to { transform: rotate(360deg); }
+}
+.spin-icon {
+  animation: icon-spin 0.9s linear infinite;
+  display: inline-block;
+}
+
+/* ── Message avatar SVG alignment ─────────────────────────────────────────── */
+.msg-avatar svg {
+  display: block;
+}
+
 /* ── Speech / Sources Buttons ─────────────────────────────────────────────── */
 .speech-btn {
   background: rgba(37, 150, 190, 0.1) !important;
@@ -659,8 +673,11 @@ textarea:focus {
   border-radius: 5px !important;
   color: var(--accent) !important;
   cursor: pointer;
-  padding: 4px 9px !important;
-  font-size: 12px !important;
+  padding: 5px 8px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   transition: background 0.2s !important;
   margin-top: 8px;
   margin-right: 6px;

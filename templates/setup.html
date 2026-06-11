@@ -32,7 +32,12 @@
     .step.running { border-color: rgba(37,150,190,0.35); }
     .step.done { border-color: rgba(62,207,142,0.35); }
     .step.error { border-color: rgba(224,90,106,0.35); }
-    .step-icon { font-size: 18px; width: 26px; text-align: center; flex-shrink: 0; margin-top: 2px; }
+    .step-icon { width: 26px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; color: var(--text-dim); }
+    .step.running .step-icon { color: var(--accent); }
+    .step.done .step-icon { color: var(--green); }
+    .step.error .step-icon { color: var(--red); }
+    @keyframes setup-spin { to { transform: rotate(360deg); } }
+    .setup-spin { animation: setup-spin 0.9s linear infinite; display: block; }
     .step-body { flex: 1; }
     .step-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
     .step-detail { font-size: 12px; color: var(--text-dim); margin-top: 3px;
@@ -50,7 +55,7 @@
     .progress-fill { height: 100%; background: var(--accent);
       transition: width 0.4s ease; width: 0%; }
     .done-msg { text-align: center; padding: 20px 0 8px; }
-    .done-msg .check { font-size: 40px; margin-bottom: 10px; }
+    .done-msg .check { margin-bottom: 10px; display: flex; justify-content: center; }
     .done-msg h2 { font-size: 19px; color: var(--green); margin-bottom: 6px; }
     .done-msg p { font-size: 13px; color: var(--text-dim); }
     a.ext-link { color: var(--accent); text-decoration: none; }
@@ -67,7 +72,9 @@
     <div id="stepsContainer"></div>
 
     <div id="doneMsg" class="done-msg" style="display:none;">
-      <div class="check">✅</div>
+      <div class="check">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
       <h2>Setup Complete!</h2>
       <p>Your local AI tutor is ready. Everything runs on your device — no internet needed for chatting.</p>
     </div>
@@ -85,12 +92,21 @@
   </div>
 
   <script>
+    const SVG = {
+      search:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+      download: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+      database: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
+      check:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+      spinner:  `<svg class="setup-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`,
+      error:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    };
+
     const STEPS_CONFIG = [
-      { key: 'ollama_check',  title: 'Check Ollama',              icon: '🔍' },
-      { key: 'model_pull',    title: 'Download LLM (qwen3.5:0.8b)', icon: '📦' },
-      { key: 'model_pull_2',  title: 'Download Embeddings (bge-m3)', icon: '📦' },
-      { key: 'build_index',   title: 'Build knowledge index',      icon: '📚' },
-      { key: 'done',          title: 'All done',                   icon: '✅' },
+      { key: 'ollama_check',  title: 'Check Ollama',              icon: SVG.search },
+      { key: 'model_pull',    title: 'Download LLM (qwen3.5:0.8b)', icon: SVG.download },
+      { key: 'model_pull_2',  title: 'Download Embeddings (bge-m3)', icon: SVG.download },
+      { key: 'build_index',   title: 'Build knowledge index',      icon: SVG.database },
+      { key: 'done',          title: 'All done',                   icon: SVG.check },
     ];
 
     let stepEls = {};
@@ -118,6 +134,13 @@
       const el = stepEls[key] || document.getElementById('step-' + key);
       if (!el) return;
       el.className = 'step ' + state;
+      const iconEl = el.querySelector('.step-icon');
+      const cfg = STEPS_CONFIG.find(s => s.key === key);
+      if (iconEl && cfg) {
+        if (state === 'running') iconEl.innerHTML = SVG.spinner;
+        else if (state === 'error') iconEl.innerHTML = SVG.error;
+        else iconEl.innerHTML = cfg.icon;
+      }
       const det = document.getElementById('detail-' + key);
       if (det && detail !== undefined) det.textContent = detail;
       if (state === 'done') {
